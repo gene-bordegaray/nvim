@@ -312,13 +312,31 @@ return {
     cmd = { "ConformInfo" },
     opts = {
       notify_on_error = false,
-      format_on_save = false,
+      format_on_save = {
+        timeout_ms = 1000,
+        async = false,
+        lsp_fallback = true,
+      },
       formatters_by_ft = {
         lua = { "stylua" },
         rust = { "rustfmt" },
         json = { "jq" },
         toml = { "taplo" },
+        markdown = { "prettierd", "prettier" },
         ["*"] = { "trim_whitespace" },
+      },
+    },
+  },
+
+  -- Auto pairs
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    opts = {
+      check_ts = true,
+      ts_config = {
+        lua = { "string" },
+        javascript = { "template_string" },
       },
     },
   },
@@ -334,11 +352,16 @@ return {
       "saadparwaiz1/cmp_luasnip",
       "L3MON4D3/LuaSnip",
       "rafamadriz/friendly-snippets",
+      "windwp/nvim-autopairs",
     },
     config = function()
       local cmp = require("cmp")
       local luasnip = require("luasnip")
+      local cmp_autopairs = require("nvim-autopairs.completion.cmp")
       require("luasnip.loaders.from_vscode").lazy_load()
+
+      -- Integrate autopairs with cmp
+      cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
 
       cmp.setup({
         snippet = {
@@ -346,13 +369,22 @@ return {
             luasnip.lsp_expand(args.body)
           end,
         },
+        completion = {
+          completeopt = "menu,menuone,noinsert",
+        },
+        experimental = {
+          ghost_text = false, -- Disable inline ghost text suggestions
+        },
         mapping = cmp.mapping.preset.insert({
           ["<C-b>"] = cmp.mapping.scroll_docs(-4),
           ["<C-f>"] = cmp.mapping.scroll_docs(4),
           ["<C-y>"] = cmp.mapping.confirm({ select = true }),
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<C-e>"] = cmp.mapping.abort(),
-          ["<CR>"] = cmp.mapping.confirm({ select = false }),
+          ["<CR>"] = cmp.mapping.confirm({
+            select = true,
+            behavior = cmp.ConfirmBehavior.Replace,
+          }),
           ["<Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then
               cmp.select_next_item()
@@ -373,15 +405,28 @@ return {
           end, { "i", "s" }),
         }),
         sources = cmp.config.sources({
-          { name = "nvim_lsp" },
+          {
+            name = "nvim_lsp",
+            entry_filter = function(entry, ctx)
+              -- Auto-import on completion for Rust
+              local kind = require("cmp.types").lsp.CompletionItemKind[entry:get_kind()]
+              if kind == "Text" then
+                return true
+              end
+              return true
+            end,
+          },
           { name = "luasnip" },
           { name = "path" },
         }, {
           { name = "buffer" },
         }),
         window = {
-          completion = cmp.config.window.bordered(),
-          documentation = cmp.config.window.bordered(),
+          completion = cmp.config.window.bordered({
+            max_width = 50,
+            max_height = 10,
+          }),
+          documentation = false, -- Disable automatic documentation window
         },
       })
     end,
@@ -456,6 +501,114 @@ return {
     end,
   },
 
+  -- Debugger (DAP)
+  {
+    "mfussenegger/nvim-dap",
+    dependencies = {
+      "rcarriga/nvim-dap-ui",
+      "nvim-neotest/nvim-nio",
+      "theHamsta/nvim-dap-virtual-text",
+    },
+    keys = {
+      {
+        "<leader>db",
+        function()
+          require("dap").toggle_breakpoint()
+        end,
+        desc = "Toggle breakpoint",
+      },
+      {
+        "<leader>dc",
+        function()
+          require("dap").continue()
+        end,
+        desc = "Continue/Start debugging",
+      },
+      {
+        "<leader>di",
+        function()
+          require("dap").step_into()
+        end,
+        desc = "Step into",
+      },
+      {
+        "<leader>do",
+        function()
+          require("dap").step_over()
+        end,
+        desc = "Step over",
+      },
+      {
+        "<leader>dO",
+        function()
+          require("dap").step_out()
+        end,
+        desc = "Step out",
+      },
+      {
+        "<leader>dt",
+        function()
+          require("dap").terminate()
+        end,
+        desc = "Terminate debugging",
+      },
+      {
+        "<leader>du",
+        function()
+          require("dapui").toggle()
+        end,
+        desc = "Toggle debug UI",
+      },
+    },
+    config = function()
+      local dap = require("dap")
+      local dapui = require("dapui")
+
+      -- Setup dap-ui
+      dapui.setup({
+        layouts = {
+          {
+            elements = {
+              { id = "scopes", size = 0.25 },
+              { id = "breakpoints", size = 0.25 },
+              { id = "stacks", size = 0.25 },
+              { id = "watches", size = 0.25 },
+            },
+            size = 40,
+            position = "left",
+          },
+          {
+            elements = {
+              { id = "repl", size = 0.5 },
+              { id = "console", size = 0.5 },
+            },
+            size = 10,
+            position = "bottom",
+          },
+        },
+      })
+
+      -- Setup virtual text
+      require("nvim-dap-virtual-text").setup({
+        enabled = true,
+      })
+
+      -- Auto-open UI on debugging
+      dap.listeners.before.attach.dapui_config = function()
+        dapui.open()
+      end
+      dap.listeners.before.launch.dapui_config = function()
+        dapui.open()
+      end
+      dap.listeners.before.event_terminated.dapui_config = function()
+        dapui.close()
+      end
+      dap.listeners.before.event_exited.dapui_config = function()
+        dapui.close()
+      end
+    end,
+  },
+
   -- Rust specific tooling
   {
     "mrcjkb/rustaceanvim",
@@ -499,7 +652,7 @@ return {
       vim.g.rustaceanvim = {
         tools = {
           hover_actions = {
-            auto_focus = true,
+            auto_focus = false,
           },
         },
         server = {
@@ -513,6 +666,17 @@ return {
               },
               check = {
                 command = "clippy",
+              },
+              imports = {
+                granularity = {
+                  group = "module",
+                },
+                prefix = "self",
+              },
+              completion = {
+                autoimport = {
+                  enable = true,
+                },
               },
               inlayHints = {
                 bindingModeHints = { enable = true },

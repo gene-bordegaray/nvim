@@ -28,3 +28,8 @@ map("n", "<Esc>", "<cmd>noh<cr>", vim.tbl_extend("force", default_opts, { desc =
 
 map("i", "kj", "<Esc>", vim.tbl_extend("force", default_opts, { desc = "Exit insert mode" }))
 
+-- Formatting
+map({ "n", "v" }, "<leader>fm", function()
+  require("conform").format({ async = true, lsp_fallback = true })
+end, vim.tbl_extend("force", default_opts, { desc = "Format buffer" }))
+
