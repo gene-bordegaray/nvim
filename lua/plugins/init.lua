@@ -160,6 +160,10 @@ return {
         "toml",
         "yaml",
         "rust",
+        "go",
+        "gomod",
+        "gosum",
+        "gowork",
         "query",
         "vim",
         "vimdoc",
@@ -320,6 +324,7 @@ return {
       formatters_by_ft = {
         lua = { "stylua" },
         rust = { "rustfmt" },
+        go = { "goimports", "gofumpt" },
         json = { "jq" },
         toml = { "taplo" },
         markdown = { "prettierd", "prettier" },
@@ -462,6 +467,7 @@ return {
         "jsonls",
         "taplo",
         "yamlls",
+        "gopls",
       },
       automatic_enable = false,
     },
@@ -493,6 +499,43 @@ return {
         jsonls = {},
         taplo = {},
         yamlls = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true,
+              codelenses = {
+                gc_details = false,
+                generate = true,
+                regenerate_cgo = true,
+                run_govulncheck = true,
+                test = true,
+                tidy = true,
+                upgrade_dependency = true,
+                vendor = true,
+              },
+              hints = {
+                assignVariableTypes = true,
+                compositeLiteralFields = true,
+                compositeLiteralTypes = true,
+                constantValues = true,
+                functionTypeParameters = true,
+                parameterNames = true,
+                rangeVariableTypes = true,
+              },
+              analyses = {
+                nilness = true,
+                unusedparams = true,
+                unusedwrite = true,
+                useany = true,
+              },
+              usePlaceholders = true,
+              completeUnimported = true,
+              staticcheck = true,
+              directoryFilters = { "-.git", "-.vscode", "-.idea", "-.venv", "-node_modules" },
+              semanticTokens = true,
+            },
+          },
+        },
       }
 
       for name, server_opts in pairs(servers) do
@@ -508,6 +551,7 @@ return {
       "rcarriga/nvim-dap-ui",
       "nvim-neotest/nvim-nio",
       "theHamsta/nvim-dap-virtual-text",
+      "leoluz/nvim-dap-go",
     },
     keys = {
       {
@@ -592,6 +636,9 @@ return {
       require("nvim-dap-virtual-text").setup({
         enabled = true,
       })
+
+      -- Setup Go debugging
+      require("dap-go").setup()
 
       -- Auto-open UI on debugging
       dap.listeners.before.attach.dapui_config = function()
@@ -732,13 +779,14 @@ return {
   },
   {
     "nvim-neotest/neotest",
-    ft = { "rust" },
+    ft = { "rust", "go" },
     dependencies = {
       "nvim-neotest/nvim-nio",
       "nvim-lua/plenary.nvim",
       "nvim-treesitter/nvim-treesitter",
       "antoinemadec/FixCursorHold.nvim",
       "rouge8/neotest-rust",
+      "fredrikaverpil/neotest-golang",
     },
     keys = {
       {
@@ -769,6 +817,7 @@ return {
           require("neotest-rust")({
             args = { "--nocapture" },
           }),
+          require("neotest-golang")(),
         },
       })
     end,
