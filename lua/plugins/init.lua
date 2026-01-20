@@ -5,23 +5,49 @@ return {
 
   -- Colorscheme
   {
-    "folke/tokyonight.nvim",
+    "catppuccin/nvim",
+    name = "catppuccin",
     lazy = false,
     priority = 1000,
     opts = {
-      style = "night",
-      transparent = false,
-      terminal_colors = true,
+      flavour = "macchiato",
+      transparent_background = false,
+      term_colors = true,
       styles = {
-        comments = { italic = true },
-        keywords = { italic = true },
-        sidebars = "dark",
-        floats = "dark",
+        comments = { "italic" },
+        conditionals = { "italic" },
+        keywords = { "italic" },
+      },
+      integrations = {
+        cmp = true,
+        gitsigns = true,
+        nvimtree = true,
+        treesitter = true,
+        telescope = true,
+        which_key = true,
+        mason = true,
+        dap = true,
+        dap_ui = true,
+        native_lsp = {
+          enabled = true,
+          virtual_text = {
+            errors = { "italic" },
+            hints = { "italic" },
+            warnings = { "italic" },
+            information = { "italic" },
+          },
+          underlines = {
+            errors = { "underline" },
+            hints = { "underline" },
+            warnings = { "underline" },
+            information = { "underline" },
+          },
+        },
       },
     },
     config = function(_, opts)
-      require("tokyonight").setup(opts)
-      vim.cmd.colorscheme("tokyonight")
+      require("catppuccin").setup(opts)
+      vim.cmd.colorscheme("catppuccin")
     end,
   },
 
@@ -33,7 +59,7 @@ return {
     config = function()
       require("lualine").setup({
         options = {
-          theme = "tokyonight",
+          theme = "catppuccin",
           globalstatus = true,
           component_separators = "",
           section_separators = "",
@@ -312,7 +338,7 @@ return {
   -- Formatting
   {
     "stevearc/conform.nvim",
-    event = { "BufWritePre" },
+    event = { "BufReadPre", "BufNewFile" },
     cmd = { "ConformInfo" },
     opts = {
       notify_on_error = false,
@@ -327,7 +353,7 @@ return {
         go = { "goimports", "gofumpt" },
         json = { "jq" },
         toml = { "taplo" },
-        markdown = { "prettierd", "prettier" },
+        markdown = { "prettier" },
         ["*"] = { "trim_whitespace" },
       },
     },
@@ -455,6 +481,17 @@ return {
     cmd = { "Mason", "MasonInstall", "MasonUninstall" },
     opts = {
       ui = { border = "rounded" },
+    },
+  },
+
+  {
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
+    dependencies = { "williamboman/mason.nvim" },
+    event = "VeryLazy",
+    opts = {
+      ensure_installed = {
+        "prettier",
+      },
     },
   },
   {
